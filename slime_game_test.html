@@ -1,0 +1,153 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Phaser - Making your first game, part 1</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update});
+
+function preload() {
+	game.load.image('sky','assets/sky.png');
+	game.load.image('ground','assets/platform.png');
+	game.load.image('star','assets/star.png');
+	game.load.spritesheet('dude','assets/dude.png',32,48);
+	game.load.spritesheet('red-slime','assets/slime_test.png',26,26);
+}
+
+var platforms;
+var player;
+var cursors;
+var ball;
+
+function create() {
+	//enable ARCADE physics
+	game.physics.startSystem(Phaser.Physics.ARCADE);
+	
+	//Add a simple background
+	game.add.sprite(0,0,'sky');
+
+
+	//create player
+	player = game.add.sprite(32,game.world.height - 150,'red-slime');
+	player.scale.setTo(2,2);
+
+	ball = game.add.graphics(0,0);
+	ball.beginFill(0xFFC0CB,1);
+	ball.drawCircle(200,300,50);
+
+	ball.enableBody = true;
+
+	game.physics.arcade.enable(player);
+
+	//physics properties
+	player.body.collideWorldBounds = true;
+	player.body.max_acceleration = 20000;
+
+    
+	//Animations 
+    player.animations.add('left', [0], 10, true);
+    player.animations.add('right', [2], 10, true);
+    player.animations.add('down', [1],10,true);
+
+	cursors = game.input.keyboard.createCursorKeys();
+	game.input.mousePointer.leftButton.onUp.add(onrelease,this);
+}
+
+function render(){
+	game.debug.text("Left Button: " + game.input.mousePointer.leftButton.duration, 300, 132);
+	game.debug.text("acceleration x: " + player.body.acceleration.x, 300, 162);
+	game.debug.text("velocity x: " + player.body.velocity.x, 300, 182);
+
+	game.debug.body(player);
+}
+
+var applied_accel_x = 0;
+var friction=0;
+
+function onrelease(pointer){
+	var dur = pointer.timeUp - pointer.timeDown;
+	var accel = dur*50;
+	if (accel < player.body.max_acceleration)
+		{
+			applied_accel_x = accel;
+
+		}
+		else{
+			applied_accel_x = player.body.max_acceleration;
+		}
+
+		console.log(applied_accel_x);
+}
+
+function update() {
+	//Collision mechanics
+    game.physics.arcade.collide(player, ball);
+	//var hitPlatform = game.physics.arcade.collide(player,platforms);
+
+	//acceleration is made up of 3 components, directions, applied acceleration, friction
+	var dir_x = 1;
+	
+	if (player.body.velocity.x >= 0) {
+		dir_x = 1;
+	} else{
+		dir_x = -1;
+	}
+
+	game.debug.text("dir_x: " + dir_x, 300, 200);
+
+	if (Math.abs(player.body.velocity.x) < 5 ){
+		friction = 0;
+		player.body.velocity.x = 0;
+	}
+	else{
+		friction = -200; //constant friction
+	}
+
+	player.body.acceleration.x = dir_x*(friction + applied_accel_x);
+	
+	if (Math.abs(applied_accel_x) < 1){
+		applied_accel_x = 0;
+	}
+	else{
+		applied_accel_x = applied_accel_x*0.5; //decays
+	}
+	if (cursors.left.isDown)
+	{
+		//Move to the left
+		player.body.velocity.x = -150;
+		player.animations.play('left');
+	}
+	else if (cursors.right.isDown){
+		//Move to the right
+		player.body.velocity.x = 150;
+		player.animations.play('right');
+	}
+
+
+	if (cursors.up.isDown){
+		//Move to the right
+		player.body.velocity.y = -150;
+	}
+	else if (cursors.down.isDown){
+		//Move to the right
+		player.body.velocity.y = 150;
+		player.animations.play('down');
+	}	
+
+	render();
+}
+
+</script>
+
+</body>
+</html>
